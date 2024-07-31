@@ -1,6 +1,12 @@
 ![TinyPascal](media/tinypascal.png)
 
-[![Chat on Discord](https://img.shields.io/discord/754884471324672040.svg?logo=discord)](https://discord.gg/tPWjMwK) [![Twitter Follow](https://img.shields.io/twitter/follow/tinyBigGAMES?style=social)](https://twitter.com/tinyBigGAMES)
+![GitHub Release](https://img.shields.io/github/v/release/tinyBigGAMES/TinyPascal?style=flat)
+ ![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/tinyBigGAMES/TinyPascal/latest/total?style=flat) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/tinyBigGAMES/TinyPascal/total?style=flat) ![GitHub Sponsors](https://img.shields.io/github/sponsors/tinyBigGAMES)     
+[![Chat on Discord](https://img.shields.io/discord/754884471324672040.svg?logo=discord)](https://discord.gg/tPWjMwK) [![Twitter Follow](https://img.shields.io/twitter/follow/tinyBigGAMES?style=social)](https://twitter.com/tinyBigGAMES)  
+
+
+
+
 # TinyPascal
 ### <img src="media\Analyze.png" alt="Overview" width="20" height="20"/> Overview
 TinyPascal is a lightweight compiler system designed for rapid prototyping and collaboration, especially useful when working with users or clients who may not have a full Delphi installation. Developed in Delphi and based on the Free Pascal Compiler (FPC), TinyPascal offers a range of features in a compact package.
