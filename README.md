@@ -48,17 +48,12 @@ TinyPascal aims to provide a practical solution for developers seeking a lightwe
 ### 🌟 Support This Project
 
 If you find this project beneficial, please consider:
-
-- 🌟 Starring the repository: 
-
-<iframe src="https://ghbtns.com/github-btn.html?user=tinyBigGAMES&repo=TinyPascal&type=star&count=true" frameborder="0" scrolling="0" width="150" height="20" title="GitHub"></iframe>
-
-- 💖 [Sponsoring](https://github.com/sponsors/your-profile)
+- 🌟  Starring the repository  
+[![GitHub stars](https://img.shields.io/github/stars/tinyBigGAMES/TinyPascal?style=social)](https://github.com/tinyBigGAMES/TinyPascal/stargazers)
+- 💖 [Sponsoring](https://github.com/sponsors/tinyBigGAMES)
 - 📢 Promoting it
 
 Your support is invaluable and highly appreciated.
-
-
 
 ### <img src="media\Update.png" alt="drawing" width="20" height="20"/> Installation  
 - [Download](https://github.com/tinyBigGAMES/TinyPascal/releases) a TinyPascal release, unzip to a desired location.
