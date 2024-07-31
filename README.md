@@ -41,7 +41,7 @@ TinyPascal continues to evolve, with plans to add more features and libraries to
 TinyPascal aims to provide a practical solution for developers seeking a lightweight yet capable tool for prototyping, testing, and collaborative development.
 
 ### <img src="media\Update.png" alt="drawing" width="20" height="20"/> Installation  
-- [Download](https://github.com/tinyBigGAMES/TinyPascal/archive/refs/heads/main.zip) the TinyPascal repo, unzip to a desired location.
+- [Download](https://github.com/tinyBigGAMES/TinyPascal/releases) a TinyPascal release, unzip to a desired location.
 - Acquire a GGUF model. All vetted models compatible with TinyPascal GenAI can be downloaded from our <a href="https://huggingface.co/tinybiggames/tinypascal" target="_blank">Hugging Face</a> account.
 - The library utilizes Vulkan for enhanced performance on supported GPUs. You can perform inference solely on the GPU or distribute the workload between the CPU and GPU to accommodate scenarios with limited VRAM. Ensure the model size does not exceed the available system resources, considering the requisite memory.
 - Consult the `installdir\examples` directory for demonstrations of using **TinyPascal**.
