@@ -4,6 +4,7 @@
  ![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/tinyBigGAMES/TinyPascal/latest/total?style=for-the-badge) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/tinyBigGAMES/TinyPascal/total?style=for-the-badge) ![GitHub Sponsors](https://img.shields.io/github/sponsors/tinyBigGAMES?style=for-the-badge)     
 [![Chat on Discord](https://img.shields.io/discord/754884471324672040?style=for-the-badge)](https://discord.gg/tPWjMwK) [![Twitter Follow](https://img.shields.io/twitter/follow/tinyBigGAMES?style=for-the-badge)](https://twitter.com/tinyBigGAMES) ![GitHub followers](https://img.shields.io/github/followers/tinyBigGAMES?style=for-the-badge)
 
+##### If you find this project beneficial, please consider starring the repository, sponsoring, or promoting it. Your support is invaluable and highly appreciated.
 
 # TinyPascal
 ### <img src="media\Analyze.png" alt="Overview" width="20" height="20"/> Overview
@@ -44,6 +45,21 @@ TinyPascal continues to evolve, with plans to add more features and libraries to
 
 TinyPascal aims to provide a practical solution for developers seeking a lightweight yet capable tool for prototyping, testing, and collaborative development.
 
+### 🌟 Support This Project
+
+If you find this project beneficial, please consider:
+
+- 🌟 Starring the repository: 
+
+<iframe src="https://ghbtns.com/github-btn.html?user=tinyBigGAMES&repo=TinyPascal&type=star&count=true" frameborder="0" scrolling="0" width="150" height="20" title="GitHub"></iframe>
+
+- 💖 [Sponsoring](https://github.com/sponsors/your-profile)
+- 📢 Promoting it
+
+Your support is invaluable and highly appreciated.
+
+
+
 ### <img src="media\Update.png" alt="drawing" width="20" height="20"/> Installation  
 - [Download](https://github.com/tinyBigGAMES/TinyPascal/releases) a TinyPascal release, unzip to a desired location.
 - Acquire a GGUF model. All vetted models compatible with TinyPascal GenAI can be downloaded from our <a href="https://huggingface.co/tinybiggames/tinypascal" target="_blank">Hugging Face</a> account.
@@ -61,7 +77,7 @@ Our development motto:
 - We will not release products that are buggy, incomplete, adding new features over not fixing underlying issues.
 - We will strive to fix issues found with our products in a timely manner.
 - We will maintain an attitude of quality over quantity for our products.
-- We will establish a great rapport with users/customers, with communication, transparency and respect, always encouragingng feedback to help shape the direction of our products.
+- We will establish a great rapport with users/customers, with communication, transparency and respect, always encouraging feedback to help shape the direction of our products.
 - We will be decent, fair, remain humble and committed to the craft.
 
 ### <img src="media\Link.png" alt="Links" width="20" height="20"/> Links
@@ -76,8 +92,5 @@ Our development motto:
 ### <img src="media\Copyright.png" alt="License" width="20" height="20"/> License
 
 ### <img src="media\People.png" alt="Acknowledgments" width="20" height="20"/> Contributors
-<p>
-<a href="https://github.com/tinyBigGAMES/TinyPascal/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=tinyBigGames/TinyPascal&max=500&columns=20&anon=1" />
-</a>  
-</p>
+
+
