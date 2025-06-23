@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat: Add native x64 code generation with in-memory execution** (2025-06-23 – jarroddavis68)
+  - Complete TinyPascal → native x64 machine code compilation
+  - Arithmetic operations (ADD, SUB, MUL, DIV) working
+  - Variable management with Windows x64 calling convention
+  - Runtime function calls (PrintLn, IntToStr) integrated
+  - In-memory execution of generated code
+  - Test case: "10 + 5" compiles to 97 bytes, executes natively, prints "15"
+  - Added debug output integration with TinyPascal.Common
+
 - **TinyPascal: 100% test pass, core language operational, solid VM & compiler pipeline** (2025-06-22 – jarroddavis68)
   - All 15/15 tests passing (variables, control flow, math, I/O)
   - Fully implemented: lexer, parser, bytecode compiler, VM
