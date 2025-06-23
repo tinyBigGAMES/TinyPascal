@@ -60,7 +60,7 @@ type
     rtError        // General runtime error
   );
 
-// Runtime functions - simple approach
+// VM Runtime functions - simple approach
 function Runtime_Print(const AValue: TValue; const AStringPool: TStringList): TRuntimeResult;
 function Runtime_PrintLn(const AValue: TValue; const AStringPool: TStringList): TRuntimeResult;
 function Runtime_PrintLn_Empty(): TRuntimeResult;
@@ -71,7 +71,18 @@ function Runtime_FloatToStr(const AValue: TValue; const AStringPool: TStringList
 function Runtime_StrToFloat(const AValue: TValue; const AStringPool: TStringList): TValue;
 function Runtime_ResultToString(const AResult: TRuntimeResult): string;
 
+// Native X64-callable runtime functions
+procedure Runtime_Print_X64(const AValue: Int64); cdecl;
+procedure Runtime_PrintLn_X64(const AValue: Int64); cdecl;
+procedure Runtime_PrintLn_Empty_X64(); cdecl;
+function Runtime_IntToStr_X64(const AValue: Int64): PAnsiChar; cdecl;
+function Runtime_StrToInt_X64(const AString: PAnsiChar): Int64; cdecl;
+procedure Runtime_PrintString_X64(const AString: PAnsiChar); cdecl;
+procedure Runtime_PrintLnString_X64(const AString: PAnsiChar); cdecl;
+
 implementation
+
+{ VM Runtime Functions - Original Implementation }
 
 function Runtime_Print(const AValue: TValue; const AStringPool: TStringList): TRuntimeResult;
 var
@@ -196,6 +207,88 @@ begin
     rtError: Result := 'Runtime error';
   else
     Result := 'Unknown result';
+  end;
+end;
+
+{ Native X64 Runtime Functions }
+
+procedure Runtime_Print_X64(const AValue: Int64); cdecl;
+begin
+  try
+    System.Write(IntToStr(AValue));
+  except
+    // Ignore errors in native calls
+  end;
+end;
+
+procedure Runtime_PrintLn_X64(const AValue: Int64); cdecl;
+begin
+  try
+    System.WriteLn(IntToStr(AValue));
+  except
+    // Ignore errors in native calls
+  end;
+end;
+
+procedure Runtime_PrintLn_Empty_X64(); cdecl;
+begin
+  try
+    System.WriteLn;
+  except
+    // Ignore errors in native calls
+  end;
+end;
+
+procedure Runtime_PrintString_X64(const AString: PAnsiChar); cdecl;
+begin
+  try
+    if Assigned(AString) then
+      System.Write(string(AnsiString(AString)));
+  except
+    // Ignore errors in native calls
+  end;
+end;
+
+procedure Runtime_PrintLnString_X64(const AString: PAnsiChar); cdecl;
+begin
+  try
+    if Assigned(AString) then
+      System.WriteLn(string(AnsiString(AString)));
+  except
+    // Ignore errors in native calls
+  end;
+end;
+
+var
+  LTempStringBuffer: array[0..255] of AnsiChar;
+
+function Runtime_IntToStr_X64(const AValue: Int64): PAnsiChar; cdecl;
+var
+  LStr: AnsiString;
+begin
+  try
+    LStr := AnsiString(IntToStr(AValue));
+    if Length(LStr) < Length(LTempStringBuffer) then
+    begin
+      StrPCopy(LTempStringBuffer, LStr);
+      Result := @LTempStringBuffer[0];
+    end
+    else
+      Result := nil;
+  except
+    Result := nil;
+  end;
+end;
+
+function Runtime_StrToInt_X64(const AString: PAnsiChar): Int64; cdecl;
+begin
+  try
+    if Assigned(AString) then
+      Result := StrToInt64(string(AnsiString(AString)))
+    else
+      Result := 0;
+  except
+    Result := 0;
   end;
 end;
 

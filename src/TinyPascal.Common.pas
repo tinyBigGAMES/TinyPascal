@@ -40,24 +40,59 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ==============================================================================}
 
-unit UTestbed;
+unit TinyPascal.Common;
+
+{$I TinyPascal.Defines.inc}
 
 interface
 
-procedure RunTestbed();
+uses
+  System.SysUtils;
+
+// Debug output control - no global variables exposed
+procedure SetDebugOutput(const AEnabled: Boolean);
+function GetDebugOutput(): Boolean;
+
+// Debug output routines - automatically check enabled state
+procedure DebugWriteLn(const AMessage: string); overload;
+procedure DebugWrite(const AMessage: string);
+procedure DebugWriteLn(const AFormat: string; const AArgs: array of const); overload;
 
 implementation
 
-uses
-  Winapi.Windows,
-  System.SysUtils,
-  TinyPascal.Tests;
+var
+  LDebugEnabled: Boolean = True; // Private to unit - default enabled for development
 
-procedure RunTestbed();
+{ Debug Control Functions }
+
+procedure SetDebugOutput(const AEnabled: Boolean);
 begin
-  RunTPTests(False);
-  Test_X64_ProofOfConcept();
-  Pause();
+  LDebugEnabled := AEnabled;
+end;
+
+function GetDebugOutput(): Boolean;
+begin
+  Result := LDebugEnabled;
+end;
+
+{ Debug Output Functions }
+
+procedure DebugWriteLn(const AMessage: string);
+begin
+  if not LDebugEnabled then Exit; // Early exit for performance
+  WriteLn(AMessage);
+end;
+
+procedure DebugWrite(const AMessage: string);
+begin
+  if not LDebugEnabled then Exit; // Early exit for performance
+  Write(AMessage);
+end;
+
+procedure DebugWriteLn(const AFormat: string; const AArgs: array of const);
+begin
+  if not LDebugEnabled then Exit; // Early exit for performance
+  WriteLn(Format(AFormat, AArgs));
 end;
 
 end.

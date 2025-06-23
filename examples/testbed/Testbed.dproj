@@ -4,7 +4,7 @@
         <ProjectVersion>20.3</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <ProjectName Condition="'$(ProjectName)'==''">Testbed</ProjectName>
         <TargetedPlatforms>2</TargetedPlatforms>
@@ -126,6 +126,8 @@
         <DCCReference Include="..\..\src\TinyPascal.BytecodeGen.pas"/>
         <DCCReference Include="..\..\src\TinyPascal.Value.pas"/>
         <DCCReference Include="..\..\src\TinyPascal.Runtime.pas"/>
+        <DCCReference Include="..\..\src\TinyPascal.X64Gen.pas"/>
+        <DCCReference Include="..\..\src\TinyPascal.Common.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

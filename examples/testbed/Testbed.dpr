@@ -57,7 +57,9 @@ uses
   TinyPascal.VM in '..\..\src\TinyPascal.VM.pas',
   TinyPascal.BytecodeGen in '..\..\src\TinyPascal.BytecodeGen.pas',
   TinyPascal.Value in '..\..\src\TinyPascal.Value.pas',
-  TinyPascal.Runtime in '..\..\src\TinyPascal.Runtime.pas';
+  TinyPascal.Runtime in '..\..\src\TinyPascal.Runtime.pas',
+  TinyPascal.X64Gen in '..\..\src\TinyPascal.X64Gen.pas',
+  TinyPascal.Common in '..\..\src\TinyPascal.Common.pas';
 
 begin
   ReportMemoryLeaksOnShutdown := True;
