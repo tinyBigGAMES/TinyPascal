@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Add array literals and X64 compilation proof of concept** (2025-06-23 – jarroddavis68)
+  - Add static and dynamic array declaration syntax
+  - Implement array literal initialization [1, 2, 3, 4, 5]
+  - Add array element access and assignment (arr[index])
+  - Implement Length() builtin function for arrays
+  - Add X64 compilation proof of concept with in-memory execution
+  - Generate working x64 machine code with runtime calls
+  - Add 8 array operation tests (all passing)
+  - Achieve 27/27 test suite success rate
+  - Validate complex programs: factorial, prime detection, games
+  - Establish dual execution paths: VM interpretation + X64 proof of concept
+
 - **feat: Add native x64 code generation with in-memory execution** (2025-06-23 – jarroddavis68)
   - Complete TinyPascal → native x64 machine code compilation
   - Arithmetic operations (ADD, SUB, MUL, DIV) working
