@@ -30,3 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Initial commit** (2025-06-22 – Jarrod Davis)
 
+
+### Removed
+- **Remove old files** (2025-06-22 – jarroddavis68)
+
