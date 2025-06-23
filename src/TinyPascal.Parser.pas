@@ -82,10 +82,11 @@ type
     function ParseProgram(): TProgramNode;
     function ParseVarSection(): TVarSectionNode;
     function ParseVarDecl(): TVarDeclNode;
-    function ParseType(): TTypeNode;
+    function ParseType(): TASTNode;
+    function ParseArrayType(): TArrayTypeNode;
     function ParseBeginEnd(): TBeginEndNode;
     function ParseStatement(): TASTNode;
-    function ParseAssignment(const AVariableName: UTF8String): TAssignmentNode;
+    function ParseAssignment(const ATarget: TASTNode): TAssignmentNode;
     function ParseIfStatement(): TIfNode;
     function ParseWhileStatement(): TWhileNode;
     function ParseForStatement(): TForNode;
@@ -97,6 +98,9 @@ type
     function ParseMulExpression(): TASTNode;
     function ParseUnaryExpression(): TASTNode;
     function ParsePrimaryExpression(): TASTNode;
+    function ParsePostfixExpression(): TASTNode;
+    function ParseArrayAccess(const AArrayExpression: TASTNode): TArrayAccessNode;
+    function ParseArrayLiteral(): TArrayLiteralNode;
     function ParseProcedureCall(): TProcedureCallNode;
     function ParseStringLiteral(): TStringLiteralNode;
     function ParseIntegerLiteral(): TIntegerLiteralNode;
@@ -185,11 +189,11 @@ end;
 
 function TParser.IsIdentifierAProcedure(const AIdentifier: UTF8String): Boolean;
 begin
-  // Known built-in procedures - updated for Print/PrintLn
+  // Known built-in procedures - updated for Print/PrintLn and array functions
   Result := (AIdentifier = 'PrintLn') or (AIdentifier = 'Print') or
             (AIdentifier = 'ReadLn') or (AIdentifier = 'IntToStr') or
             (AIdentifier = 'StrToInt') or (AIdentifier = 'FloatToStr') or
-            (AIdentifier = 'StrToFloat');
+            (AIdentifier = 'StrToFloat') or (AIdentifier = 'Length');
 end;
 
 function TParser.TokenTypeToBinaryOp(const ATokenType: TTokenType): TBinaryOpType;
@@ -265,7 +269,6 @@ begin
 
   try
     // Check for optional var section
-
     if CheckToken(ttVar) then
     begin
       LVarSection := ParseVarSection();
@@ -322,7 +325,7 @@ end;
 function TParser.ParseVarDecl(): TVarDeclNode;
 var
   LVariableName: UTF8String;
-  LTypeNode: TTypeNode;
+  LTypeNode: TASTNode;
 begin
   // Expect identifier (variable name)
   if not CheckToken(ttIdentifier) then
@@ -334,31 +337,82 @@ begin
   // Expect colon
   ExpectToken(ttColon, UTF8String('Expected colon after variable name'));
 
-  // Parse type
+  // Parse type (can be simple type or array type)
   LTypeNode := ParseType();
 
   // Create variable declaration node
   Result := TVarDeclNode.Create(LCurrentToken.Line, LCurrentToken.Column, LVariableName, LTypeNode);
 end;
 
-function TParser.ParseType(): TTypeNode;
-var
-  LPascalType: TPascalType;
+function TParser.ParseType(): TASTNode;
 begin
-  // Check for type keywords
-  case LCurrentToken.TokenType of
-    ttInt: LPascalType := ptInt;
-    ttFloat: LPascalType := ptFloat;
-    ttUInt: LPascalType := ptUInt;
-    ttString: LPascalType := ptString;
-    ttPString: LPascalType := ptPString;
+  // Check if this is an array type
+  if CheckToken(ttArray) then
+  begin
+    Result := ParseArrayType();
+  end
   else
-    RaiseParseError(UTF8String('Expected type name (Int, Float, UInt, String, or PString)'));
-    LPascalType := ptInt; // Suppress compiler warning
-  end;
+  begin
+    // Parse basic type
+    case LCurrentToken.TokenType of
+      ttInt: Result := TTypeNode.Create(LCurrentToken.Line, LCurrentToken.Column, ptInt);
+      ttFloat: Result := TTypeNode.Create(LCurrentToken.Line, LCurrentToken.Column, ptFloat);
+      ttUInt: Result := TTypeNode.Create(LCurrentToken.Line, LCurrentToken.Column, ptUInt);
+      ttString: Result := TTypeNode.Create(LCurrentToken.Line, LCurrentToken.Column, ptString);
+      ttPString: Result := TTypeNode.Create(LCurrentToken.Line, LCurrentToken.Column, ptPString);
+    else
+      RaiseParseError(UTF8String('Expected type name (Int, Float, UInt, String, PString, or array)'));
+      Result := nil; // Suppress compiler warning
+    end;
 
-  Result := TTypeNode.Create(LCurrentToken.Line, LCurrentToken.Column, LPascalType);
-  NextToken();
+    NextToken();
+  end;
+end;
+
+function TParser.ParseArrayType(): TArrayTypeNode;
+var
+  LElementType: TASTNode;
+  LStartIndex: TASTNode;
+  LEndIndex: TASTNode;
+begin
+  // Expect 'array'
+  ExpectToken(ttArray, UTF8String('Expected array keyword'));
+
+  // Check for static array syntax: array[start..end] of Type
+  if CheckToken(ttLeftBracket) then
+  begin
+    NextToken(); // consume '['
+
+    // Parse start index expression
+    LStartIndex := ParseExpression();
+
+    // Expect '..'
+    ExpectToken(ttDotDot, UTF8String('Expected ".." in array range'));
+
+    // Parse end index expression
+    LEndIndex := ParseExpression();
+
+    // Expect ']'
+    ExpectToken(ttRightBracket, UTF8String('Expected "]" after array range'));
+
+    // Expect 'of'
+    ExpectToken(ttOf, UTF8String('Expected "of" after array range'));
+
+    // Parse element type (can be another array type for multi-dimensional)
+    LElementType := ParseType();
+
+    Result := TArrayTypeNode.Create(LCurrentToken.Line, LCurrentToken.Column, atStatic, LElementType, LStartIndex, LEndIndex);
+  end
+  else
+  begin
+    // Dynamic array syntax: array of Type
+    ExpectToken(ttOf, UTF8String('Expected "of" after array keyword'));
+
+    // Parse element type
+    LElementType := ParseType();
+
+    Result := TArrayTypeNode.Create(LCurrentToken.Line, LCurrentToken.Column, atDynamic, LElementType);
+  end;
 end;
 
 function TParser.ParseBeginEnd(): TBeginEndNode;
@@ -395,22 +449,20 @@ end;
 
 function TParser.ParseStatement(): TASTNode;
 var
-  LIdentifierName: UTF8String;
+  LTarget: TASTNode;
   LNextToken: TToken;
 begin
   case LCurrentToken.TokenType of
     ttIdentifier:
     begin
-      LIdentifierName := LCurrentToken.Value;
-
       // Look ahead to see if this is assignment or procedure call
       LNextToken := LLexer.PeekToken();
 
-      if LNextToken.TokenType = ttAssign then
+      if (LNextToken.TokenType = ttAssign) or (LNextToken.TokenType = ttLeftBracket) then
       begin
-        // Assignment: identifier := expression
-        NextToken(); // consume identifier
-        Result := ParseAssignment(LIdentifierName);
+        // Parse target (variable or array access)
+        LTarget := ParsePostfixExpression();
+        Result := ParseAssignment(LTarget);
       end
       else
       begin
@@ -435,6 +487,19 @@ begin
     RaiseParseError(UTF8String('Expected statement'));
     Result := nil; // Suppress compiler warning
   end;
+end;
+
+function TParser.ParseAssignment(const ATarget: TASTNode): TAssignmentNode;
+var
+  LExpression: TASTNode;
+begin
+  // Expect ':='
+  ExpectToken(ttAssign, UTF8String('Expected assignment operator (:=)'));
+
+  // Parse the expression (right side of assignment)
+  LExpression := ParseExpression();
+
+  Result := TAssignmentNode.Create(LCurrentToken.Line, LCurrentToken.Column, ATarget, LExpression);
 end;
 
 function TParser.ParseIfStatement(): TIfNode;
@@ -570,19 +635,6 @@ begin
   end;
 end;
 
-function TParser.ParseAssignment(const AVariableName: UTF8String): TAssignmentNode;
-var
-  LExpression: TASTNode;
-begin
-  // Expect ':='
-  ExpectToken(ttAssign, UTF8String('Expected assignment operator (:=)'));
-
-  // Parse the expression (right side of assignment)
-  LExpression := ParseExpression();
-
-  Result := TAssignmentNode.Create(LCurrentToken.Line, LCurrentToken.Column, AVariableName, LExpression);
-end;
-
 function TParser.ParseExpression(): TASTNode;
 begin
   // Expression parsing with full operator precedence
@@ -713,7 +765,6 @@ begin
   // Handle unary minus (negative numbers)
   else if CheckToken(ttMinus) then
   begin
-
     NextToken(); // consume the minus sign
 
     // Special case for integer literals
@@ -732,7 +783,19 @@ begin
     end;
   end
   else
-    Result := ParsePrimaryExpression();
+    Result := ParsePostfixExpression();
+end;
+
+function TParser.ParsePostfixExpression(): TASTNode;
+begin
+  // Start with primary expression
+  Result := ParsePrimaryExpression();
+
+  // Handle postfix operations (array access)
+  while CheckToken(ttLeftBracket) do
+  begin
+    Result := ParseArrayAccess(Result);
+  end;
 end;
 
 function TParser.ParsePrimaryExpression(): TASTNode;
@@ -749,6 +812,9 @@ begin
 
     ttTrue, ttFalse:
       Result := ParseBooleanLiteral();
+
+    ttLeftBracket:
+      Result := ParseArrayLiteral();
 
     ttIdentifier:
     begin
@@ -767,8 +833,74 @@ begin
     end;
 
   else
-    RaiseParseError(UTF8String('Expected expression (literal, variable, or parentheses)'));
+    RaiseParseError(UTF8String('Expected expression (literal, variable, array, or parentheses)'));
     Result := nil; // Suppress compiler warning
+  end;
+end;
+
+function TParser.ParseArrayAccess(const AArrayExpression: TASTNode): TArrayAccessNode;
+var
+  LIndex: TASTNode;
+begin
+  Result := TArrayAccessNode.Create(LCurrentToken.Line, LCurrentToken.Column, AArrayExpression);
+
+  try
+    // Expect '['
+    ExpectToken(ttLeftBracket, UTF8String('Expected "["'));
+
+    // Parse first index
+    LIndex := ParseExpression();
+    Result.AddIndex(LIndex);
+
+    // Handle multi-dimensional arrays: [i, j, k]
+    while CheckToken(ttComma) do
+    begin
+      NextToken(); // consume ','
+      LIndex := ParseExpression();
+      Result.AddIndex(LIndex);
+    end;
+
+    // Expect ']'
+    ExpectToken(ttRightBracket, UTF8String('Expected "]"'));
+
+  except
+    Result.Free();
+    raise;
+  end;
+end;
+
+function TParser.ParseArrayLiteral(): TArrayLiteralNode;
+var
+  LElement: TASTNode;
+begin
+  Result := TArrayLiteralNode.Create(LCurrentToken.Line, LCurrentToken.Column);
+
+  try
+    // Expect '['
+    ExpectToken(ttLeftBracket, UTF8String('Expected "["'));
+
+    // Handle empty array literal []
+    if not CheckToken(ttRightBracket) then
+    begin
+      // Parse first element
+      LElement := ParseExpression();
+      Result.AddElement(LElement);
+
+      // Parse remaining elements
+      while CheckToken(ttComma) do
+      begin
+        NextToken(); // consume ','
+        LElement := ParseExpression();
+        Result.AddElement(LElement);
+      end;
+    end;
+
+    // Expect ']'
+    ExpectToken(ttRightBracket, UTF8String('Expected "]"'));
+
+  except
+    Result.Free();
+    raise;
   end;
 end;
 

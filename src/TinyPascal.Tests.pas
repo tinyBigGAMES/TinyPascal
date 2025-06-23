@@ -326,6 +326,139 @@ begin
   ExecuteProgram(LSource, 'Test 15');
 end;
 
+// NEW ARRAY TESTS
+procedure Test16_StaticArrayDeclaration();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 16: Static Array Declaration');
+  WriteLn('----------------------------------');
+
+  LSource := 'program ArrayTest; var arr: array[1..5] of Int; begin PrintLn(''Static array declared!''); end.';
+  ExecuteProgram(LSource, 'Test 16');
+end;
+
+procedure Test17_DynamicArrayDeclaration();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 17: Dynamic Array Declaration');
+  WriteLn('-----------------------------------');
+
+  LSource := 'program DynArrayTest; var arr: array of Int; begin PrintLn(''Dynamic array declared!''); end.';
+  ExecuteProgram(LSource, 'Test 17');
+end;
+
+procedure Test18_ArrayLiteralAssignment();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 18: Array Literal Assignment');
+  WriteLn('----------------------------------');
+
+  LSource := 'program ArrayLitTest; var arr: array of Int; begin arr := [1, 2, 3, 4, 5]; PrintLn(''Array literal assigned!''); end.';
+  ExecuteProgram(LSource, 'Test 18');
+end;
+
+procedure Test19_ArrayElementAccess();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 19: Array Element Access');
+  WriteLn('------------------------------');
+
+  LSource := 'program ArrayAccessTest; var arr: array of Int; element: Int; begin arr := [10, 20, 30]; element := arr[1]; PrintLn(IntToStr(element)); end.';
+  ExecuteProgram(LSource, 'Test 19');
+end;
+
+procedure Test20_ArrayElementAssignment();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 20: Array Element Assignment');
+  WriteLn('----------------------------------');
+
+  LSource := 'program ArrayAssignTest; var arr: array of Int; begin arr := [1, 2, 3]; arr[1] := 99; PrintLn(IntToStr(arr[1])); end.';
+  ExecuteProgram(LSource, 'Test 20');
+end;
+
+procedure Test21_ArrayLength();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 21: Array Length Function');
+  WriteLn('-------------------------------');
+
+  LSource := 'program ArrayLenTest; var arr: array of Int; len: Int; begin arr := [1, 2, 3, 4]; len := Length(arr); PrintLn(IntToStr(len)); end.';
+  ExecuteProgram(LSource, 'Test 21');
+end;
+
+procedure Test22_ArrayLoop();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 22: Array with Loop');
+  WriteLn('------------------------');
+
+  LSource := 'program ArrayLoopTest; var arr: array of Int; i: Int; begin arr := [10, 20, 30, 40]; for i := 0 to 3 do PrintLn(IntToStr(arr[i])); end.';
+  ExecuteProgram(LSource, 'Test 22');
+end;
+
+procedure Test23_ArraySum();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 23: Array Sum Calculation');
+  WriteLn('-------------------------------');
+
+  LSource := 'program ArraySumTest; var arr: array of Int; sum: Int; i: Int; begin arr := [5, 10, 15, 20]; sum := 0; for i := 0 to 3 do sum := sum + arr[i]; PrintLn(''Sum: ''); PrintLn(IntToStr(sum)); end.';
+  ExecuteProgram(LSource, 'Test 23');
+end;
+
+procedure Test24_SimpleArrayLiteralAccess();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 24: Simple Array Literal Access');
+  WriteLn('------------------------------------');
+
+  LSource := 'program SimpleArrayTest; var arr: array of Int; val: Int; begin arr := [100, 200, 300]; val := arr[0]; PrintLn(IntToStr(val)); end.';
+  ExecuteProgram(LSource, 'Test 24');
+end;
+
+procedure Test25_ArrayModification();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 25: Array Modification');
+  WriteLn('---------------------------');
+
+  LSource := 'program ArrayModTest; var arr: array of Int; begin arr := [1, 2, 3]; PrintLn(IntToStr(arr[1])); arr[1] := 999; PrintLn(IntToStr(arr[1])); end.';
+  ExecuteProgram(LSource, 'Test 25');
+end;
+
+procedure Test26_ArrayLengthVerification();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 26: Array Length Verification');
+  WriteLn('-----------------------------------');
+
+  LSource := 'program ArrayLenVerify; var arr: array of Int; len: Int; begin arr := [10, 20, 30, 40, 50]; len := Length(arr); PrintLn(''Array length: ''); PrintLn(IntToStr(len)); end.';
+  ExecuteProgram(LSource, 'Test 26');
+end;
+
+procedure Test27_ArrayIterationComplete();
+var
+  LSource: UTF8String;
+begin
+  WriteLn('Test 27: Complete Array Iteration');
+  WriteLn('----------------------------------');
+
+  LSource := 'program ArrayIteration; var arr: array of Int; i: Int; begin arr := [5, 15, 25]; PrintLn(''Array contents:''); for i := 0 to 2 do begin PrintLn(IntToStr(arr[i])); end; end.';
+  ExecuteProgram(LSource, 'Test 27');
+end;
+
 procedure Test_X64_ProofOfConcept();
 var
   LParser: TParser;
@@ -441,8 +574,8 @@ end;
 
 procedure RunTPTests(const APause: Boolean);
 begin
-  WriteLn('TinyPascal - COMPLETE LANGUAGE TEST SUITE');
-  WriteLn('==========================================');
+  WriteLn('TinyPascal - COMPLETE LANGUAGE TEST SUITE with ARRAYS');
+  WriteLn('======================================================');
   WriteLn('🚀 TESTING FULL PROGRAMMING LANGUAGE!');
   WriteLn('✅ Variables, arithmetic, comparisons');
   WriteLn('✅ If/then/else conditional statements');
@@ -450,6 +583,7 @@ begin
   WriteLn('✅ Boolean and float literals');
   WriteLn('✅ Complex nested expressions');
   WriteLn('✅ Real-world programming examples');
+  WriteLn('🔥 ARRAYS: Static arrays, dynamic arrays, literals, access');
   WriteLn;
 
   Test1_BasicVariableAssignment();
@@ -497,6 +631,44 @@ begin
   Test15_AdvancedIfElseChain();
   Pause(APause);
 
+  // NEW ARRAY TESTS
+  Test16_StaticArrayDeclaration();
+  Pause(APause);
+
+  Test17_DynamicArrayDeclaration();
+  Pause(APause);
+
+  Test18_ArrayLiteralAssignment();
+  Pause(APause);
+
+  Test19_ArrayElementAccess();
+  Pause(APause);
+
+  Test20_ArrayElementAssignment();
+  Pause(APause);
+
+  Test21_ArrayLength();
+  Pause(APause);
+
+  Test22_ArrayLoop();
+  Pause(APause);
+
+  Test23_ArraySum();
+  Pause(APause);
+
+
+  Test24_SimpleArrayLiteralAccess();
+  Pause(APause);
+
+  Test25_ArrayModification();
+  Pause(APause);
+
+  Test26_ArrayLengthVerification();
+  Pause(APause);
+
+  Test27_ArrayIterationComplete();
+  Pause(APause);
+
   WriteLn('=== TINYPASCAL STATUS REPORT ===');
   WriteLn('🎯 WORKING FEATURES:');
   WriteLn('✅ Variables: Int, Float, String types');
@@ -506,6 +678,7 @@ begin
   WriteLn('✅ Logical: and, or, not');
   WriteLn('✅ Control Flow: if/then/else, while, for loops');
   WriteLn('✅ Built-in functions: PrintLn, IntToStr, StrToInt');
+  WriteLn('🔥 ARRAYS: Static arrays, dynamic arrays, literals, access, Length()');
   WriteLn('✅ All test cases passing successfully!');
   WriteLn;
 end;

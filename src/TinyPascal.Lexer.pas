@@ -80,6 +80,8 @@ type
     ttNot,            // 'not'
     ttTrue,           // 'true'
     ttFalse,          // 'false'
+    ttArray,          // 'array'
+    ttOf,             // 'of'
     ttInt,            // 'Int' (Int64)
     ttFloat,          // 'Float' (Double)
     ttUInt,           // 'UInt' (UInt64)
@@ -91,6 +93,7 @@ type
     ttFloatLiteral,   // 123.45
     ttSemicolon,      // ';'
     ttDot,            // '.'
+    ttDotDot,         // '..'
     ttComma,          // ','
     ttColon,          // ':'
     ttLeftParen,      // '('
@@ -163,7 +166,7 @@ implementation
 
 const
   // Keywords table - case sensitive
-  Keywords: array[0..23] of record
+  Keywords: array[0..25] of record
     Text: UTF8String;
     TokenType: TTokenType;
   end = (
@@ -186,6 +189,8 @@ const
     (Text: 'not'; TokenType: ttNot),
     (Text: 'true'; TokenType: ttTrue),
     (Text: 'false'; TokenType: ttFalse),
+    (Text: 'array'; TokenType: ttArray),
+    (Text: 'of'; TokenType: ttOf),
     (Text: 'Int'; TokenType: ttInt),
     (Text: 'Float'; TokenType: ttFloat),
     (Text: 'UInt'; TokenType: ttUInt),
@@ -443,7 +448,13 @@ begin
     '.':
     begin
       AdvanceChar();
-      Result := TToken.Create(ttDot, UTF8String('.'), LStartLine, LStartColumn);
+      if GetCurrentChar() = '.' then
+      begin
+        AdvanceChar();
+        Result := TToken.Create(ttDotDot, UTF8String('..'), LStartLine, LStartColumn);
+      end
+      else
+        Result := TToken.Create(ttDot, UTF8String('.'), LStartLine, LStartColumn);
     end;
 
     ',':

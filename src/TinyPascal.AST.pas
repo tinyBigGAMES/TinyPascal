@@ -78,6 +78,12 @@ type
     ltNot     // not
   );
 
+  // Array type enumeration
+  TArrayType = (
+    atStatic,   // array[1..10] of Int
+    atDynamic   // array of Int
+  );
+
   // Forward declarations
   TASTNode = class;
   TProgramNode = class;
@@ -96,6 +102,9 @@ type
   TWhileNode = class;
   TForNode = class;
   TTypeNode = class;
+  TArrayTypeNode = class;
+  TArrayAccessNode = class;
+  TArrayLiteralNode = class;
   TVarDeclNode = class;
   TVarSectionNode = class;
   IASTVisitor = interface;
@@ -137,20 +146,78 @@ type
     property PascalType: TPascalType read LPascalType;
   end;
 
+  // Array type node: array[1..10] of Int, array of String
+  TArrayTypeNode = class(TASTNode)
+  private
+    LArrayType: TArrayType;
+    LElementType: TASTNode;  // The type of elements (TTypeNode or another TArrayTypeNode)
+    LStartIndex: TASTNode;   // For static arrays (expression, usually integer literal)
+    LEndIndex: TASTNode;     // For static arrays (expression, usually integer literal)
+
+  public
+    constructor Create(const ALine, AColumn: Integer; const AArrayType: TArrayType; const AElementType: TASTNode; const AStartIndex: TASTNode = nil; const AEndIndex: TASTNode = nil);
+    destructor Destroy(); override;
+
+    function Accept(const AVisitor: IASTVisitor): Pointer; override;
+
+    property ArrayType: TArrayType read LArrayType;
+    property ElementType: TASTNode read LElementType;
+    property StartIndex: TASTNode read LStartIndex;
+    property EndIndex: TASTNode read LEndIndex;
+  end;
+
+  // Array access node: arr[5], matrix[i, j]
+  TArrayAccessNode = class(TASTNode)
+  private
+    LArrayExpression: TASTNode;  // The array being accessed
+    LIndices: TObjectList<TASTNode>;  // List of index expressions
+
+  public
+    constructor Create(const ALine, AColumn: Integer; const AArrayExpression: TASTNode);
+    destructor Destroy(); override;
+
+    function Accept(const AVisitor: IASTVisitor): Pointer; override;
+
+    procedure AddIndex(const AIndex: TASTNode);
+    function GetIndexCount(): Integer;
+    function GetIndex(const AIndexPos: Integer): TASTNode;
+
+    property ArrayExpression: TASTNode read LArrayExpression;
+    property Indices: TObjectList<TASTNode> read LIndices;
+  end;
+
+  // Array literal node: [1, 2, 3, 4]
+  TArrayLiteralNode = class(TASTNode)
+  private
+    LElements: TObjectList<TASTNode>;
+
+  public
+    constructor Create(const ALine, AColumn: Integer);
+    destructor Destroy(); override;
+
+    function Accept(const AVisitor: IASTVisitor): Pointer; override;
+
+    procedure AddElement(const AElement: TASTNode);
+    function GetElementCount(): Integer;
+    function GetElement(const AIndex: Integer): TASTNode;
+
+    property Elements: TObjectList<TASTNode> read LElements;
+  end;
+
   // Variable declaration node: identifier: Type
   TVarDeclNode = class(TASTNode)
   private
     LVariableName: UTF8String;
-    LTypeNode: TTypeNode;
+    LTypeNode: TASTNode;  // Can be TTypeNode or TArrayTypeNode
 
   public
-    constructor Create(const ALine, AColumn: Integer; const AVariableName: UTF8String; const ATypeNode: TTypeNode);
+    constructor Create(const ALine, AColumn: Integer; const AVariableName: UTF8String; const ATypeNode: TASTNode);
     destructor Destroy(); override;
 
     function Accept(const AVisitor: IASTVisitor): Pointer; override;
 
     property VariableName: UTF8String read LVariableName;
-    property TypeNode: TTypeNode read LTypeNode;
+    property TypeNode: TASTNode read LTypeNode;
   end;
 
   // Variable section node: var ... declarations
@@ -352,16 +419,16 @@ type
   // Assignment node: x := expression
   TAssignmentNode = class(TASTNode)
   private
-    LVariableName: UTF8String;
+    LTarget: TASTNode;       // Variable or array access
     LExpression: TASTNode;
 
   public
-    constructor Create(const ALine, AColumn: Integer; const AVariableName: UTF8String; const AExpression: TASTNode);
+    constructor Create(const ALine, AColumn: Integer; const ATarget: TASTNode; const AExpression: TASTNode);
     destructor Destroy(); override;
 
     function Accept(const AVisitor: IASTVisitor): Pointer; override;
 
-    property VariableName: UTF8String read LVariableName;
+    property Target: TASTNode read LTarget;
     property Expression: TASTNode read LExpression;
   end;
 
@@ -438,6 +505,9 @@ type
     function VisitWhile(const ANode: TWhileNode): Pointer;
     function VisitFor(const ANode: TForNode): Pointer;
     function VisitType(const ANode: TTypeNode): Pointer;
+    function VisitArrayType(const ANode: TArrayTypeNode): Pointer;
+    function VisitArrayAccess(const ANode: TArrayAccessNode): Pointer;
+    function VisitArrayLiteral(const ANode: TArrayLiteralNode): Pointer;
     function VisitVarDecl(const ANode: TVarDeclNode): Pointer;
     function VisitVarSection(const ANode: TVarSectionNode): Pointer;
   end;
@@ -488,9 +558,121 @@ begin
   Result := AVisitor.VisitType(Self);
 end;
 
+{ TArrayTypeNode }
+
+constructor TArrayTypeNode.Create(const ALine, AColumn: Integer; const AArrayType: TArrayType; const AElementType: TASTNode; const AStartIndex: TASTNode = nil; const AEndIndex: TASTNode = nil);
+begin
+  inherited Create(ALine, AColumn);
+  LArrayType := AArrayType;
+  LElementType := AElementType;
+  LStartIndex := AStartIndex;
+  LEndIndex := AEndIndex;
+
+  if Assigned(AElementType) then
+    AddChild(AElementType);
+  if Assigned(AStartIndex) then
+    AddChild(AStartIndex);
+  if Assigned(AEndIndex) then
+    AddChild(AEndIndex);
+end;
+
+destructor TArrayTypeNode.Destroy();
+begin
+  LElementType.Free();
+  LStartIndex.Free();
+  LEndIndex.Free();
+  inherited Destroy();
+end;
+
+function TArrayTypeNode.Accept(const AVisitor: IASTVisitor): Pointer;
+begin
+  Result := AVisitor.VisitArrayType(Self);
+end;
+
+{ TArrayAccessNode }
+
+constructor TArrayAccessNode.Create(const ALine, AColumn: Integer; const AArrayExpression: TASTNode);
+begin
+  inherited Create(ALine, AColumn);
+  LArrayExpression := AArrayExpression;
+  LIndices := TObjectList<TASTNode>.Create(True); // Owns indices
+
+  if Assigned(AArrayExpression) then
+    AddChild(AArrayExpression);
+end;
+
+destructor TArrayAccessNode.Destroy();
+begin
+  LArrayExpression.Free();
+  LIndices.Free();
+  inherited Destroy();
+end;
+
+function TArrayAccessNode.Accept(const AVisitor: IASTVisitor): Pointer;
+begin
+  Result := AVisitor.VisitArrayAccess(Self);
+end;
+
+procedure TArrayAccessNode.AddIndex(const AIndex: TASTNode);
+begin
+  if Assigned(AIndex) then
+  begin
+    LIndices.Add(AIndex);
+    AddChild(AIndex);
+  end;
+end;
+
+function TArrayAccessNode.GetIndexCount(): Integer;
+begin
+  Result := LIndices.Count;
+end;
+
+function TArrayAccessNode.GetIndex(const AIndexPos: Integer): TASTNode;
+begin
+  Result := LIndices[AIndexPos];
+end;
+
+{ TArrayLiteralNode }
+
+constructor TArrayLiteralNode.Create(const ALine, AColumn: Integer);
+begin
+  inherited Create(ALine, AColumn);
+  LElements := TObjectList<TASTNode>.Create(True); // Owns elements
+end;
+
+destructor TArrayLiteralNode.Destroy();
+begin
+  LElements.Free();
+  inherited Destroy();
+end;
+
+function TArrayLiteralNode.Accept(const AVisitor: IASTVisitor): Pointer;
+begin
+  Result := AVisitor.VisitArrayLiteral(Self);
+end;
+
+procedure TArrayLiteralNode.AddElement(const AElement: TASTNode);
+begin
+  if Assigned(AElement) then
+  begin
+    LElements.Add(AElement);
+    AddChild(AElement);
+  end;
+end;
+
+function TArrayLiteralNode.GetElementCount(): Integer;
+begin
+  Result := LElements.Count;
+end;
+
+function TArrayLiteralNode.GetElement(const AIndex: Integer): TASTNode;
+begin
+  Result := LElements[AIndex];
+end;
+
 { TVarDeclNode }
 
-constructor TVarDeclNode.Create(const ALine, AColumn: Integer; const AVariableName: UTF8String; const ATypeNode: TTypeNode);
+constructor TVarDeclNode.Create(const ALine, AColumn: Integer; const AVariableName: UTF8String; const ATypeNode: TASTNode);
 begin
   inherited Create(ALine, AColumn);
   LVariableName := AVariableName;
@@ -806,17 +988,20 @@ end;
 
 { TAssignmentNode }
 
-constructor TAssignmentNode.Create(const ALine, AColumn: Integer; const AVariableName: UTF8String; const AExpression: TASTNode);
+constructor TAssignmentNode.Create(const ALine, AColumn: Integer; const ATarget: TASTNode; const AExpression: TASTNode);
 begin
   inherited Create(ALine, AColumn);
-  LVariableName := AVariableName;
+  LTarget := ATarget;
   LExpression := AExpression;
+  if Assigned(ATarget) then
+    AddChild(ATarget);
   if Assigned(AExpression) then
     AddChild(AExpression);
 end;
 
 destructor TAssignmentNode.Destroy();
 begin
+  LTarget.Free();
   LExpression.Free();
   inherited Destroy();
 end;

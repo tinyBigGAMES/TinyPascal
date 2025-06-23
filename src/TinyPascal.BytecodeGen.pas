@@ -126,11 +126,20 @@ type
     procedure EmitJumpTrue(const ALabelId: Integer);
     procedure EmitJumpFalse(const ALabelId: Integer);
 
+    // Array-specific helper methods
+    procedure EmitArrayCreate(const AElementType: TValueType; const AStartIndex: Integer = 0; const AEndIndex: Integer = -1; const AIsDynamic: Boolean = False);
+    procedure EmitArrayAccess();
+    procedure EmitArrayAssign();
+    procedure EmitArrayLength();
+
     // Variable and constant management
     function GetOrCreateVariable(const AVariableName: UTF8String): Integer;
     {$HINTS OFF}
     function CreateConstantFromLiteral(const AValue: UTF8String; const AType: TPascalType): TValue;
     {$HINTS ON}
+
+    // Type conversion helpers
+    function PascalTypeToValueType(const APascalType: TPascalType): TValueType;
 
     // Jump patching
     procedure PatchJumps();
@@ -163,6 +172,9 @@ type
     function VisitWhile(const ANode: TWhileNode): Pointer;
     function VisitFor(const ANode: TForNode): Pointer;
     function VisitType(const ANode: TTypeNode): Pointer;
+    function VisitArrayType(const ANode: TArrayTypeNode): Pointer;
+    function VisitArrayAccess(const ANode: TArrayAccessNode): Pointer;
+    function VisitArrayLiteral(const ANode: TArrayLiteralNode): Pointer;
     function VisitVarDecl(const ANode: TVarDeclNode): Pointer;
     function VisitVarSection(const ANode: TVarSectionNode): Pointer;
 
@@ -182,6 +194,7 @@ const
   BUILTIN_STRTOINT_INDEX = 4;
   BUILTIN_FLOATTOSTR_INDEX = 5;
   BUILTIN_STRTOFLOAT_INDEX = 6;
+  BUILTIN_ARRAYLENGTH_INDEX = 7;
 
 { TBytecodeGenResult }
 
@@ -215,6 +228,7 @@ begin
   LFunctionMap.Add(UTF8String('StrToInt'), BUILTIN_STRTOINT_INDEX);
   LFunctionMap.Add(UTF8String('FloatToStr'), BUILTIN_FLOATTOSTR_INDEX);
   LFunctionMap.Add(UTF8String('StrToFloat'), BUILTIN_STRTOFLOAT_INDEX);
+  LFunctionMap.Add(UTF8String('Length'), BUILTIN_ARRAYLENGTH_INDEX);
 end;
 
 destructor TBuiltinFunctionMap.Destroy();
@@ -430,6 +444,36 @@ begin
   EmitInstruction(TInstructionFactory.CreateJmpFalse(Cardinal(ALabelId) or Cardinal($80000000))); // Use high bit to mark as label
 end;
 
+procedure TBytecodeGenerator.EmitArrayCreate(const AElementType: TValueType; const AStartIndex: Integer = 0; const AEndIndex: Integer = -1; const AIsDynamic: Boolean = False);
+var
+  LArrayValue: TValue;
+begin
+  // Create array value and emit it as a constant
+  LArrayValue := TValueFactory.CreateArray(AElementType, AStartIndex, AEndIndex, AIsDynamic);
+  EmitLoadConst(LArrayValue);
+end;
+
+procedure TBytecodeGenerator.EmitArrayAccess();
+begin
+  // Stack: [array] [index]
+  // Result: [element]
+  EmitInstruction(TInstructionFactory.CreateInstruction(OP_ARRAY_ACCESS));
+end;
+
+procedure TBytecodeGenerator.EmitArrayAssign();
+begin
+  // Stack: [array] [index] [value]
+  // Result: [array] (modified)
+  EmitInstruction(TInstructionFactory.CreateInstruction(OP_ARRAY_ASSIGN));
+end;
+
+procedure TBytecodeGenerator.EmitArrayLength();
+begin
+  // Stack: [array]
+  // Result: [length]
+  EmitInstruction(TInstructionFactory.CreateInstruction(OP_ARRAY_LENGTH));
+end;
+
 function TBytecodeGenerator.GetOrCreateVariable(const AVariableName: UTF8String): Integer;
 begin
   Result := LProgram.GetVariableIndex(AVariableName);
@@ -449,6 +493,18 @@ begin
     end;
   else
     Result := TValue.CreateNone();
+  end;
+end;
+
+function TBytecodeGenerator.PascalTypeToValueType(const APascalType: TPascalType): TValueType;
+begin
+  case APascalType of
+    ptInt: Result := vtInt64;
+    ptUInt: Result := vtUInt64;
+    ptFloat: Result := vtFloat64;
+    ptString, ptPString: Result := vtString;
+  else
+    Result := vtNone;
   end;
 end;
 
@@ -766,15 +822,48 @@ begin
     Exit;
   end;
 
-  // Generate code for expression (right side)
-  if Assigned(ANode.Expression) then
-    ANode.Expression.Accept(Self);
+  // Handle array assignment vs simple variable assignment
+  if ANode.Target is TArrayAccessNode then
+  begin
+    // Array assignment: arr[index] := value
+    // Generate array expression
+    TArrayAccessNode(ANode.Target).ArrayExpression.Accept(Self);
 
-  if HasError() then
-    Exit;
+    // Generate all indices (for multi-dimensional arrays)
+    var LArrayAccess := TArrayAccessNode(ANode.Target);
+    var LIndex: Integer;
+    for LIndex := 0 to LArrayAccess.GetIndexCount() - 1 do
+    begin
+      LArrayAccess.GetIndex(LIndex).Accept(Self);
+    end;
 
-  // Store result in variable
-  EmitStoreVar(ANode.VariableName);
+    // Generate value expression
+    if Assigned(ANode.Expression) then
+      ANode.Expression.Accept(Self);
+
+    if HasError() then
+      Exit;
+
+    // Emit array assignment instruction
+    EmitArrayAssign();
+  end
+  else if ANode.Target is TVariableReferenceNode then
+  begin
+    // Simple variable assignment: var := value
+    // Generate code for expression (right side)
+    if Assigned(ANode.Expression) then
+      ANode.Expression.Accept(Self);
+
+    if HasError() then
+      Exit;
+
+    // Store result in variable
+    EmitStoreVar(TVariableReferenceNode(ANode.Target).VariableName);
+  end
+  else
+  begin
+    SetError('Invalid assignment target');
+  end;
 end;
 
 function TBytecodeGenerator.VisitIf(const ANode: TIfNode): Pointer;
@@ -943,7 +1032,114 @@ begin
   // Type nodes don't generate code - they're used for declarations
 end;
 
+function TBytecodeGenerator.VisitArrayType(const ANode: TArrayTypeNode): Pointer;
+begin
+  Result := nil;
+  // Array type nodes are handled during variable declarations
+  // No runtime code is generated for type definitions
+end;
+
+function TBytecodeGenerator.VisitArrayAccess(const ANode: TArrayAccessNode): Pointer;
+var
+  LIndex: Integer;
+begin
+  Result := nil;
+
+  if not Assigned(ANode) then
+  begin
+    SetError('ArrayAccess node is nil');
+    Exit;
+  end;
+
+  // Generate code for array expression
+  if Assigned(ANode.ArrayExpression) then
+    ANode.ArrayExpression.Accept(Self);
+
+  if HasError() then
+    Exit;
+
+  // Generate code for all indices (for multi-dimensional arrays)
+  for LIndex := 0 to ANode.GetIndexCount() - 1 do
+  begin
+    ANode.GetIndex(LIndex).Accept(Self);
+    if HasError() then
+      Exit;
+  end;
+
+  // For now, only support single-dimensional arrays
+  if ANode.GetIndexCount() = 1 then
+  begin
+    EmitArrayAccess();
+  end
+  else
+  begin
+    SetError('Multi-dimensional arrays not yet supported');
+  end;
+end;
+
+function TBytecodeGenerator.VisitArrayLiteral(const ANode: TArrayLiteralNode): Pointer;
+var
+  LIndex: Integer;
+  LElementCount: Integer;
+begin
+  Result := nil;
+
+  if not Assigned(ANode) then
+  begin
+    SetError('ArrayLiteral node is nil');
+    Exit;
+  end;
+
+  LElementCount := ANode.GetElementCount();
+
+  if LElementCount > 0 then
+  begin
+    // Create static array with proper size for array literals
+    // Array literals have known size, so use static arrays
+    EmitArrayCreate(vtInt64, 0, LElementCount - 1, False);
+
+    // Now stack has: [array]
+    // Assign each element to the array
+    for LIndex := 0 to LElementCount - 1 do
+    begin
+      // Duplicate array reference for this assignment
+      EmitInstruction(TInstructionFactory.CreateDup());
+      // Stack: [array] [array]
+
+      // Push the index
+      EmitLoadConst(TValue.CreateInt64(LIndex));
+      // Stack: [array] [array] [index]
+
+      // Generate the element value
+      ANode.GetElement(LIndex).Accept(Self);
+      if HasError() then Exit;
+      // Stack: [array] [array] [index] [element]
+
+      // Assign element to array (this consumes array, index, element and returns modified array)
+      EmitArrayAssign();
+      // Stack: [array] [modified_array]
+
+      // Pop the modified array result (we keep the original array reference)
+      EmitInstruction(TInstructionFactory.CreatePop());
+      // Stack: [array]
+    end;
+    // Final stack: [array] (the populated array)
+  end
+  else
+  begin
+    // Empty array literal - create dynamic array
+    EmitArrayCreate(vtInt64, 0, -1, True);
+  end;
+end;
+
 function TBytecodeGenerator.VisitVarDecl(const ANode: TVarDeclNode): Pointer;
+var
+  LTypeNode: TASTNode;
+  LArrayTypeNode: TArrayTypeNode;
+  LElementType: TValueType;
+  LStartIndex: Integer;
+  LEndIndex: Integer;
+  LArrayValue: TValue;
 begin
   Result := nil;
 
@@ -956,7 +1152,69 @@ begin
   // Ensure variable exists in variable table
   GetOrCreateVariable(ANode.VariableName);
 
-  // Variable declarations don't generate runtime code
+  // Check if this is an array type declaration
+  LTypeNode := ANode.TypeNode;
+  if LTypeNode is TArrayTypeNode then
+  begin
+    LArrayTypeNode := TArrayTypeNode(LTypeNode);
+
+    // Determine element type
+    if LArrayTypeNode.ElementType is TTypeNode then
+    begin
+      LElementType := PascalTypeToValueType(TTypeNode(LArrayTypeNode.ElementType).PascalType);
+    end
+    else
+    begin
+      SetError('Unsupported array element type');
+      Exit;
+    end;
+
+    // Initialize array based on type
+    if LArrayTypeNode.ArrayType = atStatic then
+    begin
+      // Static array: evaluate start and end indices
+      if Assigned(LArrayTypeNode.StartIndex) then
+      begin
+        // For now, assume literal integer indices
+        if LArrayTypeNode.StartIndex is TIntegerLiteralNode then
+          LStartIndex := TIntegerLiteralNode(LArrayTypeNode.StartIndex).Value
+        else
+        begin
+          SetError('Non-literal array bounds not supported yet');
+          Exit;
+        end;
+      end
+      else
+        LStartIndex := 0;
+
+      if Assigned(LArrayTypeNode.EndIndex) then
+      begin
+        if LArrayTypeNode.EndIndex is TIntegerLiteralNode then
+          LEndIndex := TIntegerLiteralNode(LArrayTypeNode.EndIndex).Value
+        else
+        begin
+          SetError('Non-literal array bounds not supported yet');
+          Exit;
+        end;
+      end
+      else
+        LEndIndex := -1;
+
+      // Create static array
+      LArrayValue := TValueFactory.CreateArray(LElementType, LStartIndex, LEndIndex, False);
+    end
+    else
+    begin
+      // Dynamic array: starts empty
+      LArrayValue := TValueFactory.CreateArray(LElementType, 0, -1, True);
+    end;
+
+    // Store the array in the variable
+    EmitLoadConst(LArrayValue);
+    EmitStoreVar(ANode.VariableName);
+  end;
+
+  // Simple variable declarations don't generate runtime code
   // The variable is just registered for later use
 end;
 

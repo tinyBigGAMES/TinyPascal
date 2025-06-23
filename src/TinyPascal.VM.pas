@@ -77,7 +77,8 @@ type
     bfIntToStr,    // IntToStr(int) -> string
     bfStrToInt,    // StrToInt(string) -> int
     bfFloatToStr,  // FloatToStr(float) -> string
-    bfStrToFloat   // StrToFloat(string) -> float
+    bfStrToFloat,  // StrToFloat(string) -> float
+    bfLength       // Length(array) -> int
   );
 
   // VM execution statistics
@@ -134,6 +135,7 @@ type
     function ExecuteComparison(const AOpcode: TOpcode): TVMResult;
     function ExecuteConversion(const AOpcode: TOpcode): TVMResult;
     function ExecuteBuiltinCall(const AFunctionIndex: Cardinal): TVMResult;
+    function ExecuteArrayOperation(const AOpcode: TOpcode): TVMResult;
 
     // Error handling
     {$HINTS OFF}
@@ -443,6 +445,9 @@ begin
     OP_CONV_TO_INT64, OP_CONV_TO_UINT64, OP_CONV_TO_FLOAT64, OP_CONV_TO_STRING, OP_CONV_TO_BOOLEAN:
       Result := ExecuteConversion(LOpcode);
 
+    OP_ARRAY_ACCESS, OP_ARRAY_ASSIGN, OP_ARRAY_LENGTH:
+      Result := ExecuteArrayOperation(LOpcode);
+
     OP_HALT:
       LRunning := False;
 
@@ -552,6 +557,60 @@ begin
   end;
 end;
 
+function TVirtualMachine.ExecuteArrayOperation(const AOpcode: TOpcode): TVMResult;
+var
+  LArrayValue: TValue;
+  LIndexValue: TValue;
+  LElementValue: TValue;
+  LResultValue: TValue;
+begin
+  Result := vmrSuccess;
+
+  try
+    case AOpcode of
+      OP_ARRAY_ACCESS:
+      begin
+        // Stack: [array] [index]
+        CheckStackUnderflow(2);
+        LIndexValue := PopValue();
+        LArrayValue := PopValue();
+
+        LResultValue := TValueOperations.ArrayAccess(LArrayValue, LIndexValue);
+        PushValue(LResultValue);
+      end;
+
+      OP_ARRAY_ASSIGN:
+      begin
+        // Stack: [array] [index] [value]
+        CheckStackUnderflow(3);
+        LElementValue := PopValue();
+        LIndexValue := PopValue();
+        LArrayValue := PopValue();
+
+        LResultValue := TValueOperations.ArrayAssign(LArrayValue, LIndexValue, LElementValue);
+        PushValue(LResultValue);
+      end;
+
+      OP_ARRAY_LENGTH:
+      begin
+        // Stack: [array]
+        CheckStackUnderflow(1);
+        LArrayValue := PopValue();
+
+        LResultValue := TValueOperations.ArrayLength(LArrayValue);
+        PushValue(LResultValue);
+      end;
+
+    else
+      Result := vmrInvalidOpcode;
+    end;
+
+  except
+    on E: Exception do
+      Result := vmrTypeError;
+  end;
+end;
+
 function TVirtualMachine.ExecuteBuiltinCall(const AFunctionIndex: Cardinal): TVMResult;
 var
   LValue: TValue;
@@ -641,6 +700,22 @@ begin
         Result := vmrTypeError
       else
         PushValue(LResult);
+    end;
+
+    bfLength:
+    begin
+      CheckStackUnderflow(1);
+      LValue := PopValue();
+
+      if LValue.IsArray() then
+      begin
+        LResult := TValueOperations.ArrayLength(LValue);
+        PushValue(LResult);
+      end
+      else
+      begin
+        Result := vmrTypeError;
+      end;
     end;
 
   else
@@ -757,6 +832,7 @@ begin
     bfStrToInt: Result := 'StrToInt';
     bfFloatToStr: Result := 'FloatToStr';
     bfStrToFloat: Result := 'StrToFloat';
+    bfLength: Result := 'Length';
   else
     Result := 'Unknown';
   end;

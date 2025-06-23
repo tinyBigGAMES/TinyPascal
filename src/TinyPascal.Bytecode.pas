@@ -106,6 +106,11 @@ type
     OP_CONV_TO_STRING   = $93,    // Convert to string
     OP_CONV_TO_BOOLEAN  = $94,    // Convert to boolean
 
+    // === Array Operations ===
+    OP_ARRAY_ACCESS     = $A0,    // Array element access
+    OP_ARRAY_ASSIGN     = $A1,    // Array element assignment
+    OP_ARRAY_LENGTH     = $A2,    // Get array length
+
     // === Special ===
     OP_HALT             = $FF     // Halt execution
   );
@@ -237,6 +242,12 @@ type
     class function CreateCallBuiltin(const AFunctionIndex: Cardinal): TInstruction; static;
     class function CreatePop(): TInstruction; static;
     class function CreateDup(): TInstruction; static;
+
+    // Array operations
+    class function CreateArrayAccess(): TInstruction; static;
+    class function CreateArrayAssign(): TInstruction; static;
+    class function CreateArrayLength(): TInstruction; static;
+
     class function CreateHalt(): TInstruction; static;
   end;
 
@@ -611,6 +622,21 @@ begin
   Result := CreateInstruction(OP_DUP);
 end;
 
+class function TInstructionFactory.CreateArrayAccess(): TInstruction;
+begin
+  Result := CreateInstruction(OP_ARRAY_ACCESS);
+end;
+
+class function TInstructionFactory.CreateArrayAssign(): TInstruction;
+begin
+  Result := CreateInstruction(OP_ARRAY_ASSIGN);
+end;
+
+class function TInstructionFactory.CreateArrayLength(): TInstruction;
+begin
+  Result := CreateInstruction(OP_ARRAY_LENGTH);
+end;
+
 class function TInstructionFactory.CreateHalt(): TInstruction;
 begin
   Result := CreateInstruction(OP_HALT);
@@ -761,6 +787,9 @@ begin
     OP_CONV_TO_FLOAT64: Result := 'CONV_TO_FLOAT64';
     OP_CONV_TO_STRING: Result := 'CONV_TO_STRING';
     OP_CONV_TO_BOOLEAN: Result := 'CONV_TO_BOOLEAN';
+    OP_ARRAY_ACCESS: Result := 'ARRAY_ACCESS';
+    OP_ARRAY_ASSIGN: Result := 'ARRAY_ASSIGN';
+    OP_ARRAY_LENGTH: Result := 'ARRAY_LENGTH';
     OP_HALT: Result := 'HALT';
   else
     Result := Format('UNKNOWN_%02X', [Byte(AOpcode)]);
@@ -786,6 +815,9 @@ begin
     OP_CMP_LE: Result := 'Compare less or equal';
     OP_CMP_GT: Result := 'Compare greater than';
     OP_CMP_GE: Result := 'Compare greater or equal';
+    OP_ARRAY_ACCESS: Result := 'Array element access';
+    OP_ARRAY_ASSIGN: Result := 'Array element assignment';
+    OP_ARRAY_LENGTH: Result := 'Get array length';
     OP_CALL_BUILTIN: Result := 'Call built-in function';
     OP_HALT: Result := 'Halt execution';
   else
