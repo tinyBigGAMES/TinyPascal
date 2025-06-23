@@ -8,7 +8,7 @@
  Copyright © 2025-present tinyBigGAMES™ LLC
  All Rights Reserved.
 
- https://github.com/tinyBigGAMES/TinyPascal
+ https://github.com/tinyBigGAMES/Game2D
 
  BSD 3-Clause License
 
@@ -40,31 +40,23 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ==============================================================================}
 
-program Testbed;
+{$WARN SYMBOL_DEPRECATED OFF}
+{$WARN SYMBOL_PLATFORM OFF}
 
-{$APPTYPE CONSOLE}
+{$WARN UNIT_PLATFORM OFF}
+{$WARN UNIT_DEPRECATED OFF}
 
-{$R *.res}
+{$Z4}
+{$A8}
 
-uses
-  System.SysUtils,
-  TinyPascal.Lexer in '..\..\src\TinyPascal.Lexer.pas',
-  UTestbed in 'UTestbed.pas',
-  TinyPascal.AST in '..\..\src\TinyPascal.AST.pas',
-  TinyPascal.Parser in '..\..\src\TinyPascal.Parser.pas',
-  TinyPascal.Tests in '..\..\src\TinyPascal.Tests.pas',
-  TinyPascal.Bytecode in '..\..\src\TinyPascal.Bytecode.pas',
-  TinyPascal.VM in '..\..\src\TinyPascal.VM.pas',
-  TinyPascal.BytecodeGen in '..\..\src\TinyPascal.BytecodeGen.pas',
-  TinyPascal.Value in '..\..\src\TinyPascal.Value.pas',
-  TinyPascal.Runtime in '..\..\src\TinyPascal.Runtime.pas';
+{$INLINE AUTO}
 
-begin
-  ReportMemoryLeaksOnShutdown := True;
-  try
-    RunTestbed();
-  except
-    on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
-  end;
-end.
+{$IFNDEF WIN64}
+  {$MESSAGE Error 'Unsupported platform'}
+{$ENDIF}
+
+{$IF (CompilerVersion < 36.0)}
+  {$IFNDEF WIN64}
+    {$MESSAGE Error 'Must use Delphi 12 or higher'}
+  {$ENDIF}
+{$IFEND}

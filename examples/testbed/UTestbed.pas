@@ -40,31 +40,23 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ==============================================================================}
 
-program Testbed;
+unit UTestbed;
 
-{$APPTYPE CONSOLE}
+interface
 
-{$R *.res}
+procedure RunTestbed();
+
+implementation
 
 uses
+  Winapi.Windows,
   System.SysUtils,
-  TinyPascal.Lexer in '..\..\src\TinyPascal.Lexer.pas',
-  UTestbed in 'UTestbed.pas',
-  TinyPascal.AST in '..\..\src\TinyPascal.AST.pas',
-  TinyPascal.Parser in '..\..\src\TinyPascal.Parser.pas',
-  TinyPascal.Tests in '..\..\src\TinyPascal.Tests.pas',
-  TinyPascal.Bytecode in '..\..\src\TinyPascal.Bytecode.pas',
-  TinyPascal.VM in '..\..\src\TinyPascal.VM.pas',
-  TinyPascal.BytecodeGen in '..\..\src\TinyPascal.BytecodeGen.pas',
-  TinyPascal.Value in '..\..\src\TinyPascal.Value.pas',
-  TinyPascal.Runtime in '..\..\src\TinyPascal.Runtime.pas';
+  TinyPascal.Tests;
 
+procedure RunTestbed();
 begin
-  ReportMemoryLeaksOnShutdown := True;
-  try
-    RunTestbed();
-  except
-    on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
-  end;
+  RunTPTests(False);
+  Pause();
+end;
+
 end.
